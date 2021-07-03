@@ -1,8 +1,8 @@
 package Introduction;
 
 import javafx.application.Application;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.scene.Scene;
 import javafx.application.Platform;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
@@ -11,23 +11,23 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Button;
 import javafx.scene.text.Font;
 
-public class FirstApp extends Application {
+public class FirstJavaFXProgram extends Application {
 
     public void start( Stage stage ) {
 
-        Label message = new Label( "First FX Application." );
+        Label message = new Label( "First FX Application" );
         message.setFont( new Font( 40 ) );
 
-        Button helloButton = new Button( "Say Hello." );
-        helloButton.setOnAction( e -> message.setText( "Hello World!" ) );
+        Button helloButton = new Button( "Say Hello" );
+        helloButton.setOnAction( e -> message.setText( "Hello World" ) );
 
-        Button goodbyeButton = new Button( "Say Goodbye" );
-        goodbyeButton.setOnAction( e -> message.setText( "Goodbye." ) );
+        Button goodByeButton = new Button( "Say Goodbye" );
+        goodByeButton.setOnAction( e -> message.setText( "Goodbye!!!" ) );
 
-        Button quitButton = new Button( "Quit." );
+        Button quitButton = new Button( "Quit" );
         quitButton.setOnAction( e -> Platform.exit() );
 
-        HBox buttonBar = new HBox( 20, helloButton, goodbyeButton, quitButton );
+        HBox buttonBar = new HBox( 20, helloButton, goodByeButton, quitButton );
         buttonBar.setAlignment( Pos.CENTER );
 
         BorderPane root = new BorderPane();
@@ -38,11 +38,9 @@ public class FirstApp extends Application {
         stage.setScene( scene );
         stage.setTitle( "JavaFX Test." );
         stage.show();
-
-    }  // end start().
+    }
 
     public static void main( String[] args ) {
         launch( args );  // Run this application.
-
     }
-}  // end of class FirstApp.java.
+}

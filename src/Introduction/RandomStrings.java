@@ -1,29 +1,29 @@
 package Introduction;
 
 import javafx.application.Application;
-import javafx.scene.layout.BorderPane;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.*;
 import javafx.scene.canvas.*;
 import javafx.scene.paint.Color;
 
 /**
- * This program displays 25 copies of a message. The color and
- * position of each message is selected at random. The font of each message
- * is randomly chosen from among five possible fonts. The messages
- * are displayed on a white background. There is a button that the user
- * can click to redraw the image using new random values.
+ * This program displays 25 copies of a message. The color and position
+ * of each message is selected at random. The font of each message is randomly
+ * chosen from among five possible fonts. The messages are displayed on a white
+ * background. There is a button that the user can click to redraw the image using
+ * new random values.
  */
 public class RandomStrings extends Application {
 
-    private final static String MESSAGE = "Hello JavaFX";
+    private static final String MESSAGE = "Mediterranean";
 
-    private Font font1, font2, font3, font4, font5;  // The five fonts.
+    private Font font1, font2, font3, font4, font5;
 
-    private Canvas canvas;  // The canvas on which the strings are drawn.
+    private Canvas canvas;
 
     public static void main( String[] args ) {
         launch( args );
@@ -37,31 +37,30 @@ public class RandomStrings extends Application {
         font4 = Font.font( 40 );
         font5 = Font.font( "Times New Roman", FontWeight.BOLD, FontPosture.ITALIC, 60 );
 
-        canvas = new Canvas( 500, 300 );
+        canvas = new Canvas( 500, 400 );
         draw();  // Draw content of the canvas the first time.
 
-        Button redraw = new Button( "Redraw!" );
+        Button redraw = new Button( "Redraw." );
         redraw.setOnAction( e -> draw() );
 
         StackPane bottom = new StackPane( redraw );
-        bottom.setStyle( "-fx-border-color: gray; -fx-padding:5px; -fx-border-color:black; -fx-border-width: 2px 0 0 0" );
-
+        bottom.setStyle("-fx-background-color: gray; -fx-padding:5px;" +
+                " -fx-border-color:black; -fx-border-width: 2px 0 0 0");
         BorderPane root = new BorderPane( canvas );
         root.setBottom( bottom );
-        root.setStyle( "-fx-border-color:black; -fx-border-width: 2px" );
+        root.setStyle("-fx-border-color:black; -fx-border-width: 2px");
 
         stage.setScene( new Scene( root, Color.BLACK ) );
-        stage.setTitle( "Random Strings" );
+        stage.setTitle( "Random Strings." );
         stage.setResizable( false );
         stage.show();
-
 
     }
 
     /**
-     * The draw() method is responsible for drawing the content of the canvas.
-     * It draws 25 copies of the message string, using a random color, font, and
-     * position for each string.
+     * The draw() method is responsible for drawing the content of the canvas. It
+     * draws 25 copies of the message string, using a random color, font, and position
+     * for each string.
      */
     private void draw() {
 
@@ -70,56 +69,50 @@ public class RandomStrings extends Application {
         double width = canvas.getWidth();
         double height = canvas.getHeight();
 
-        g.setFill( Color.WHITE );  // fill with white background
-        g.fillRect(0, 0, width, height);
+        g.setFill( Color.WHITE );
+        g.fillRect( 0, 0, width, height );
 
-        for (int i = 0; i < 25; i++) {
+        for ( int i = 0; i < 25; i++ ) {
 
-            // Draw one string.  First, set the font to be one of the five
+            // Draw one string. First, set the font to be one of the five
             // available fonts, at random.
+            int fontNum = (int)( 5*Math.random() ) + 1;
 
-            int fontNum = (int)(5*Math.random()) + 1;
-            switch (fontNum) {
+            switch( fontNum ) {
                 case 1:
-                    g.setFont(font1);
+                    g.setFont( font1 );
                     break;
                 case 2:
-                    g.setFont(font2);
+                    g.setFont( font2 );
                     break;
                 case 3:
-                    g.setFont(font3);
+                    g.setFont( font3 );
                     break;
                 case 4:
-                    g.setFont(font4);
+                    g.setFont( font4 );
                     break;
                 case 5:
-                    g.setFont(font5);
+                    g.setFont( font5 );
                     break;
-            } // end switch
+
+            }
 
             // Set the color to a bright, saturated color, with random hue.
-
             double hue = 360*Math.random();
-            g.setFill( Color.hsb(hue, 1.0, 1.0) );
+            g.setFill( Color.hsb( hue, 1.0, 1.0 ) );
 
             // Select the position of the string, at random.
-
-            double x,y;
-            x = -50 + Math.random()*(width+40);
-            y = Math.random()*(height+20);
+            double x, y;
+            x = -50 + Math.random()*( width+40 );
+            y = Math.random()* ( height + 20 );
 
             // Draw the message.
+            g.fillText( MESSAGE, x, y );
 
-            g.fillText(MESSAGE,x,y);
+            // Also stroke the outline of the strings with black.
+            g.setStroke( Color.BLACK );
+            g.strokeText( MESSAGE, x, y );
 
-            // Also stroke the outline of the strings with black
-
-            g.setStroke(Color.BLACK);
-            g.strokeText(MESSAGE,x,y);
-
-        } // end for
-
-    } // end draw()
-
-
+        }
+    }
 }
