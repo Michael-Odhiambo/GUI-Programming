@@ -2,29 +2,45 @@ package Exercises;
 
 /**
  * Author: Michael Allan Odhiambo.
- * E-mail: michaelallanodhiambo@gmail.com
+ * E-mail: michaelallanodhiambo@gmail.com.
  */
 
 /**
- * Write a GUI Blackjack program that lets the user play a game of Blackjack, with the computer
- * as the dealer. The program should raw the user's cards and the dealer's cards. Add the following
- * rule to the description:
+ * In the previous version of the Blackjack game, the user can click on the "Hit",
+ * "Stand", and "NewGame" buttons even when it doesn't make sense to do so. It would
+ * be better if the buttons were disabled at the appropriate times. The "New Game"
+ * button should be disabled when there is a game in progress. The "Hit" and "Stand"
+ * buttons should be disabled when there is not a game in progress. The instance variable
+ * gameInProgress tells whether or not a game is in progress, so you just have to make sure
+ * that the buttons are properly enabled and disabled whenever this variable changes value.
+ * I strongly advise writing a method that can be called every time it is necessary to set the
+ * value of the gameInProgress variable. That method can take full responsibility for
+ * enabling and disabling the buttons ( as long as it is used consistently ). Recall
+ * that if bttn is a variable of type button, then bttn.setDisable( true ) disables the
+ * button and bttn.setDisable( false ) enables the button.
  *
- * If a player takes five cards without going over 21, that player wins immediately. This rule is used
- * in some casinos. For your program, it means that you only have to allow room for five cards. You should
- * make the canvas just wide enough to show five cards, and tall enough to show both the user's hand and
- * the dealer's hand.
+ * A second ( and more difficult ) improvement, make it possible for the user to place bets
+ * on the Blackjack game. When the program starts, give the user $100. Add a TextField to the
+ * strip of controls along the bottom of the panel. The user enters the bet in this TextField.
+ * When the game begins, check the amount of the bet. You should do this when the game begins,
+ * not when it ends, because several errors can occur: The contents of the TextField might not
+ * be a legal number, the bet that the user places might be more money than the user has, or the
+ * bet might be <= 0. You should detect these errors and show an error message instead of starting
+ * the game. The user's bet should be an integral number of dollars.
  *
- * Note that the design of the GUI Blackjack game is very different from the design of the text-oriented
- * program that you wrote previously. The user should play the game by clicking on "Hit" and "Stand"
- * buttons. There should be a "New Game" button that can be used to start another game after one game ends.
- * You have to decide what happens when each of these buttons is pressed. You don't have much chance of
- * getting this right unless you think in terms of the states that the game can be in and how the state can
- * change.
+ * It would be a good idea to make the TextField uneditable while the game is in progress. If betInput
+ * is the TextField, you can make it editable and uneditable by the user with the commands betInput.setEditable( true )
+ * and betInput.setEditable( false ).
  *
- * Your program will need the classes defined in Card.java, Hand.java, Deck.java and BlackjackHand.java. It
- * will also need the images file cards.png, which contains pictures of the cards.
+ * In the drawBoard() method, you should include commands to display the amount of money that the user
+ * has left.
+ *
+ * There is one other thing to think about: Ideally, the program should not start a new game when it
+ * is first created. The user should have a chance to set a bet amount before the game starts. So, in
+ * the start() method, you should not call doNewGame(). You might want to display a message such as
+ * "Welcome to Blackjack" before the first game starts.
  */
+
 
 import javafx.application.Application;
 import javafx.scene.image.Image;
@@ -40,7 +56,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.control.Label;
 import javafx.geometry.Pos;
 
-public class Problem8 extends Application {
+public class Problem9 extends Application {
 
     private Canvas canvas;
     private GraphicsContext g;
@@ -62,6 +78,8 @@ public class Problem8 extends Application {
 
     private boolean gameInProgress;
     private boolean hasStood;  // The user has pressed the stand button.
+    double betAmount;
+    boolean amountSpecified;
 
     public static void main( String[] args ) {
         launch( args );
@@ -70,6 +88,7 @@ public class Problem8 extends Application {
     public void start( Stage stage ) {
         createLayout();
         initialize();
+        displayWelcomeMessage();
         draw();
 
         gameInProgress = true;
@@ -88,6 +107,34 @@ public class Problem8 extends Application {
     private void doNewGame() {
         initialize();
         draw();
+
+    }
+
+    private void getBetAmount() {
+
+        yourBet.requestFocus();
+
+            try {
+                String yStr = yourBet.getText();
+                betAmount = Double.parseDouble(yStr);
+                amountSpecified = true;
+
+            } catch (NumberFormatException e) {
+                g.fillRect( 0, 0, canvas.getWidth(), canvas.getHeight() );
+                g.strokeText("Please enter a valid bet amount..", 400, 300);
+                yourBet.requestFocus();
+                yourBet.selectAll();
+
+
+        }
+    }
+
+    private void displayWelcomeMessage() {
+        g.setFill( Color.GREEN );
+        g.fillRect( 0, 0, canvas.getWidth(), canvas.getHeight() );
+
+        g.setStroke( Color.WHITE );
+        g.strokeText( "   WELCOME TO BLACKJACK.\n    SET YOUR BET AMOUNT IN THE TEXT FIELD BELOW", 400, 300 );
 
     }
 
@@ -122,6 +169,8 @@ public class Problem8 extends Application {
      * Initializes all the variables.
      */
     private void initialize() {
+
+        amountSpecified = false;
 
         gameInProgress = true;
         hasStood = false;
@@ -208,6 +257,11 @@ public class Problem8 extends Application {
      * This method draws the cards in each of the player's hand.
      */
     private void draw() {
+
+        while ( !amountSpecified ) {
+            getBetAmount();
+            return;
+        }
 
         g.setFill( Color.GREEN );
         g.fillRect( 0, 0, canvas.getWidth(), canvas.getHeight() );
@@ -318,3 +372,6 @@ public class Problem8 extends Application {
 
     }
 }
+
+
+
