@@ -55,189 +55,326 @@ import javafx.scene.control.Button;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Label;
 import javafx.geometry.Pos;
+import javafx.scene.text.Font;
 
 public class Problem9 extends Application {
 
-    private Canvas canvas;
-    private GraphicsContext g;
-    private Image cardImages;
+    private Deck deck;  // A deck of cards to be used in the game.
 
-    private Button hit;
-    private Button stand;
-    private Button newGame;
-    private TextField yourBet;
+    private BlackjackHand dealerHand;  // Hand containing the dealelr's cards.
+    private BlackjackHand playerHand;  // Hand containing the user's cards.
 
-    private Label bet;
-    private HBox buttonBar;
-    private BorderPane root;
+    private Button hitButton, standButton, newGameButton;
 
-    private Deck deck;
-    private BlackjackHand dealer;
-    private BlackjackHand player;
-    private Hand winner;
+    private TextField betInput;  // An input box for the user's bet amount.
 
-    private boolean gameInProgress;
-    private boolean hasStood;  // The user has pressed the stand button.
-    double betAmount;
-    boolean amountSpecified;
+    private String message;  // A message drawn on the canvas, which changes to reflect the state of the game.
+    private boolean gameInProgress;  // Set to true when a game begins and to false when the game ends.
+
+    private Canvas board;  // The canvas where the cards and messages are displayed.
+    private Image cardImages;  // The image that contains all the cards in a deck.
+    private int usersMoney = 100;  // How much money the user currently has.
+    private int betAmount;  // The amount the user bet on the current game, when a game is in progress.
 
     public static void main( String[] args ) {
         launch( args );
     }
 
+    /**
+     * The start() method sets up the GUI and event handling.
+     */
     public void start( Stage stage ) {
-        createLayout();
-        initialize();
-        displayWelcomeMessage();
-        draw();
 
-        gameInProgress = true;
+        cardImages = new Image( "Exercises/cards.png" );
+        board = new Canvas( 515, 415 );  // Space for 5 cards across and 2 cards down,
+                                                      // with 20-pixel spaces between cards, plus space
+                                                      // for messages.
+        hitButton = new Button( "Hit!" );
+        hitButton.setOnAction( e -> doHit() );
+        standButton = new Button( "Stand!" );
+        standButton.setOnAction( e -> doStand() );
+        newGameButton = new Button( "New Game" );
+        newGameButton.setOnAction( e -> doNewGame() );
 
-        newGame.setOnAction( e -> doNewGame() );
-        hit.setOnAction( e -> doHit() );
-        stand.setOnAction( e -> doStand() );
+        betInput = new TextField( "10" );
+        betInput.setPrefColumnCount( 5 );
+
+        HBox buttonBar = new HBox( 6, hitButton, standButton, newGameButton, new Label( "Your bet: " ), betInput );
+        buttonBar.setStyle( "-fx-border-color: darkred; -fx-border-width: 3px 0 0 0;"
+                + "-fx-padding: 8px; -fx-background-color:beige" );
+        buttonBar.setAlignment( Pos.CENTER );
+
+        BorderPane root = new BorderPane();
+        root.setStyle( "-fx-border-color: darkred; -fx-border-width: 3px" );
+        root.setCenter( board );
+        root.setBottom( buttonBar );
+
+        setGameInProgress( false );
+        drawBoard();
 
         Scene scene = new Scene( root );
         stage.setScene( scene );
-        stage.setTitle( "Black Jack" );
+        stage.setTitle( "Blackjack" );
+        stage.setResizable( false );
         stage.show();
 
     }
 
-    private void doNewGame() {
-        initialize();
-        draw();
+    /**
+     * This method is called whenever the value of the gameInProgress property
+     * has to be changed. In addition to setting the value of the gameInProgress
+     * variable, it also enables and disables the buttons and text input box to
+     * reflect the state of the game.
+     * @param inProgress The new value of gameInProgress.
+     */
+    private void setGameInProgress( boolean inProgress ) {
+        gameInProgress = inProgress;
+        if ( gameInProgress ) {
+            hitButton.setDisable( false );
+            standButton.setDisable( false );
+            newGameButton.setDisable( true );
+            betInput.setEditable( false );
+            hitButton.requestFocus();
 
-    }
-
-    private void getBetAmount() {
-
-        yourBet.requestFocus();
-
-            try {
-                String yStr = yourBet.getText();
-                betAmount = Double.parseDouble(yStr);
-                amountSpecified = true;
-
-            } catch (NumberFormatException e) {
-                g.fillRect( 0, 0, canvas.getWidth(), canvas.getHeight() );
-                g.strokeText("Please enter a valid bet amount..", 400, 300);
-                yourBet.requestFocus();
-                yourBet.selectAll();
-
+        }
+        else {
+            hitButton.setDisable( true );
+            standButton.setDisable( true );
+            newGameButton.setDisable( false );
+            betInput.setEditable( true );
+            newGameButton.requestFocus();
 
         }
     }
 
-    private void displayWelcomeMessage() {
-        g.setFill( Color.GREEN );
-        g.fillRect( 0, 0, canvas.getWidth(), canvas.getHeight() );
-
-        g.setStroke( Color.WHITE );
-        g.strokeText( "   WELCOME TO BLACKJACK.\n    SET YOUR BET AMOUNT IN THE TEXT FIELD BELOW", 400, 300 );
-
-    }
-
     /**
-     * This method creates the layout and buttons.
+     * Start a new game. Deal two cards to each player. The game might end right then if one
+     * of the players has a blackjack. Otherwise, gameInProgress is set to true and the game
+     * begins.
      */
-    private void createLayout() {
+    void doNewGame() {
+        if ( gameInProgress ) {
+            // If the current game is not over, it is an error to try to start a new game. Should
+            // be impossible, since the New Game button is disabled when it is not legal to use
+            // it.
+            message = "You still have to finish this game!";
+            drawBoard();
+            return;
+        }
+        if ( usersMoney == 0 ) {
+            // User is broke; give the user another $100
+            usersMoney = 100;
+        }
+        try {
+            // get the amount of the user's bet and check for errors.
+            betAmount = Integer.parseInt( betInput.getText() );
+        }
+        catch ( NumberFormatException e ) {
+            message = "Bet amount must be an integer!";
+            betInput.requestFocus();
+            betInput.selectAll();
+            drawBoard();
+            return;
+        }
+        if ( betAmount > usersMoney ) {
+            message = "The bet amount can't be more than you have!";
+            betInput.requestFocus();
+            betInput.selectAll();
+            drawBoard();
+            return;
+        }
+        if ( betAmount <= 0 ) {
+            message = "The bet has to be a positive number";
+            betInput.requestFocus();
+            betInput.selectAll();
+            drawBoard();
+            return;
+        }
 
-        canvas = new Canvas( 800, 600 );
-        g = canvas.getGraphicsContext2D();
-
-        cardImages = new Image( "Exercises/cards.png" );
-
-        hit = new Button( "Hit!" );
-        stand = new Button( "Stand!" );
-        newGame = new Button( "New Game" );
-        bet = new Label( "Your bet: " );
-        yourBet = new TextField();
-
-        buttonBar = new HBox( hit, stand, newGame, bet, yourBet );
-        buttonBar.setAlignment( Pos.CENTER );
-
-        root = new BorderPane( canvas );
-        root.setBottom( buttonBar );
-        buttonBar.setSpacing( 10 );
-        buttonBar.setPrefHeight( 40 );
-
-
-    }
-
-    /**
-     * Initializes all the variables.
-     */
-    private void initialize() {
-
-        amountSpecified = false;
-
-        gameInProgress = true;
-        hasStood = false;
-
-        dealer = new BlackjackHand();
-        player = new BlackjackHand();
-
-        deck = new Deck();
+        deck = new Deck();  // Create the deck and hands to use for this game.
+        dealerHand = new BlackjackHand();
+        playerHand = new BlackjackHand();
         deck.shuffle();
+        dealerHand.addCard( deck.dealCard() );
+        dealerHand.addCard( deck.dealCard() );
+        playerHand.addCard( deck.dealCard() );
+        playerHand.addCard( deck.dealCard() );
 
-        dealFirstTwoCards();
-        newGame.setDisable( true );
-        hit.setDisable( false );
-        stand.setDisable( false );
+        if ( dealerHand.getBlackjackValue() == 21 ) {
+            message = "Sorry, you lose. Dealer has a Blackjack.";
+            usersMoney = usersMoney - betAmount;
+            setGameInProgress( false );
 
-    }
-
-    private void winnerExists() {
-
-        gameInProgress = false;
-        newGame.setDisable(false);
-        hit.setDisable(true);
-        stand.setDisable(true);
+        }
+        else if ( playerHand.getBlackjackValue() == 21 ) {
+            message = "Congratulations, you have a Blackjack.";
+            usersMoney = usersMoney + betAmount;
+            setGameInProgress( false );
+        }
+        else {
+            message = "You have " + playerHand.getBlackjackValue() + ". Hit or Stand?";
+            setGameInProgress( true );
+        }
+        drawBoard();
 
     }
 
     /**
-     * This method deals the first two cards to each player. First, tow cards are dealt into each player's
-     * hand. If the dealer's hand has a value of 21 at this point, then the dealer wins. Otherwise, if the
-     * user has 21, then the user wins. ( This is called a "Blackjack". ) Note that the dealer wins on a tie,
-     * so if both players have Blackjack, then the dealer wins.
+     * This method is called when the user clicks the "Hit!" button. First check that a game
+     * is actually in progress. If not, give an error message and exit. Otherwise, give the
+     * user a card. The game can end at this point if the user goes over 21 or if the user has
+     * taken 5 cards without going over 21.
      */
-    private void dealFirstTwoCards() {
+    void doHit() {
+
+        if ( gameInProgress == false ) {
+            // Should be impossible, since the Hit button is disabled
+            // when it is not legal to use it.
+            message = "Click \"New Game\" to start a new game.";
+            drawBoard();
+            return;
+        }
+        playerHand.addCard( deck.dealCard() );
+
+        if ( playerHand.getBlackjackValue() > 21 ) {
+            setGameInProgress( false );
+            usersMoney = usersMoney - betAmount;
+            message = "You've busted! Sorry, you lose on: " + playerHand.getBlackjackValue();
+
+        }
+        else if ( playerHand.getCardCount() == 5 ) {
+            setGameInProgress( false );
+            usersMoney = usersMoney + betAmount;
+            message = "You win by taking 5 cards without going over 21.";
+
+        }
+        else {
+            message = "You have " + playerHand.getBlackjackValue() + ". Hit or Stand?";
+
+        }
+        drawBoard();
+
+    }
+
+    /**
+     * This method is called when the user clicks the "Stand!" button. Check whether
+     * a game is actually in progress. If it is, the game ends. The dealer takes cards
+     * until either the dealer has 5 cards or more than 16 points. Then the winner of
+     * the game is determined.
+     */
+    void doStand() {
+        if ( gameInProgress == false ) {
+            // Should be impossible, since the Stand button is disabled when
+            // it is not legal to use it.
+            message = "Click \"New Game\" to start a new game.";
+            drawBoard();
+            return;
+
+        }
+        setGameInProgress( false );
+
+        while ( dealerHand.getBlackjackValue() <= 16 && dealerHand.getCardCount() < 5 )
+            dealerHand.addCard( deck.dealCard() );
+        if ( dealerHand.getBlackjackValue() > 21 ) {
+            usersMoney = usersMoney + betAmount;
+            message = "Congratulations, You win! Dealer has busted with " + dealerHand.getBlackjackValue() + ".";
+
+        }
+        else if ( dealerHand.getCardCount() == 5 ) {
+            usersMoney = usersMoney - betAmount;
+            message = "Sorry, you lose. Dealer took 5 cards without going over 21.";
+
+        }
+        else if ( dealerHand.getBlackjackValue() > playerHand.getBlackjackValue() ) {
+            usersMoney = usersMoney - betAmount;
+            message = "Sorry, you lose, " + dealerHand.getBlackjackValue() + " to " + playerHand.getBlackjackValue() + ".";
+
+        }
+        else if ( dealerHand.getBlackjackValue() == playerHand.getBlackjackValue() ) {
+            usersMoney = usersMoney - betAmount;
+            message = "Sorry, you lose. Dealer wins on a tie.";
+
+        }
+        else {
+            usersMoney = usersMoney + betAmount;
+            message = "You win, " + playerHand.getBlackjackValue() + " to " + dealerHand.getBlackjackValue() + "!";
+
+        }
+        drawBoard();
+    }
+
+    /**
+     * The drawBoard() method shows the messages at the bottom of the canvas,
+     * and it draws all of the dealt cards spread out across the canvas. If the
+     * first game has not started, it shows a welcome message instead of the cards.
+     */
+    public void drawBoard() {
+
+        GraphicsContext g = board.getGraphicsContext2D();
+        g.setFill( Color.DARKGREEN );
+        g.fillRect( 0, 0, board.getWidth(), board.getHeight() );
+
+        g.setFont( Font.font(16) );
+
+        // Draw a message telling how much money the user has.
+        g.setFill( Color.YELLOW );
+        if ( usersMoney > 0 ) {
+            g.fillText( "You have $ " + usersMoney, 20, board.getHeight() - 45 );
+        }
+        else {
+            g.fillText( "YOU ARE BROKE! ( I will give you another $100. )", 20, board.getHeight() - 45 );
+            usersMoney = 100;
+
+        }
+
+        g.setFill( Color.rgb( 220, 255, 220 ) );
+
+        if ( dealerHand == null ) {
+            // The first game has not yet started.
+            // Draw a welcome message and return.
+            g.setFont( Font.font( 30 ) );
+            g.fillText( "        Welcome to Blackjack!\n        Place your bet and \n        click \"New Game\".", 40, 80 );
+
+            g.setFont( Font.font( 15 ) );
+            g.fillText( message, 20, board.getHeight() - 20 );
+
+            return;
+        }
+
+        // Draw the message at the bottom of the canvas.
+        g.fillText( message, 20, board.getHeight() - 20 );
+
+        // Draw labels for the two sets of cards.
+        g.fillText( "Dealer's Cards: ", 20, 27 );
+        g.fillText( "Your Cards: ", 20, 190 );
+
         /**
-         * Deal two cards to each player.
+         * Draw the dealer's cards. Draw first card face down if the game is still
+         * in progress, It will be revealed when the game ends.
          */
-        for (int i = 0; i < 2; i++) {
-            dealer.addCard(deck.dealCard());
-            player.addCard(deck.dealCard());
+        if ( gameInProgress )
+            drawCard( g, null, 20, 40 );
+        else
+            drawCard( g, dealerHand.getCard(0), 20, 40 );
 
-        }
+        for ( int i = 1; i < dealerHand.getCardCount(); i++ )
+            drawCard( g, dealerHand.getCard(i), 20 + i * 99, 40 );
 
-        // If the dealer has won, take the necessary action.
-        if ( hasWon( dealer ) ) {
-            winnerExists();
-            draw();
-
-
-        } else if ( hasWon( player ) ) {
-            winnerExists();
-            draw();
-
-        }
-
+        // Draw the user's cards.
+        for ( int i = 0; i < playerHand.getCardCount(); i++ )
+            drawCard( g, playerHand.getCard(i), 20 + i * 99, 206 );
+        
     }
 
     /**
      * Draws a card with top-left corner at ( x, y ). If card is null, then a face-down
-     * card is drawn. The card images are from the file cards.png; this program will fail without
-     * it.
+     * card is drawn. The card images are from the file cards.png; this program will fail
+     * without it.
      */
-    private void drawCard( GraphicsContext g, Exercises.Card card, int x, int y ) {
-
+    private void drawCard( GraphicsContext g, Card card, int x, int y ) {
         int cardRow, cardCol;
-
         if ( card == null ) {
-            cardRow = 4;  // row and column of a face down card.
+            cardRow = 4;  // Row and column of a face-down card.
             cardCol = 2;
 
         }
@@ -246,129 +383,10 @@ public class Problem9 extends Application {
             cardCol = card.getValue() - 1;
 
         }
-        double sx, sy;  // top left corner of the source rectangle for card in cardImages.
+        double sx, sy;  // top-left corner of source rectangle for card in cardImages.
         sx = 79 * cardCol;
         sy = 123 * cardRow;
         g.drawImage( cardImages, sx, sy, 79, 123, x, y, 79, 123 );
-
-    }
-
-    /**
-     * This method draws the cards in each of the player's hand.
-     */
-    private void draw() {
-
-        while ( !amountSpecified ) {
-            getBetAmount();
-            return;
-        }
-
-        g.setFill( Color.GREEN );
-        g.fillRect( 0, 0, canvas.getWidth(), canvas.getHeight() );
-
-        g.setStroke( Color.WHITE );
-        g.strokeText( "Dealer's Cards:", 35, 50 );
-        g.strokeText( "Your Cards:", 35, 300 );
-
-        if ( gameInProgress )
-            g.strokeText( "Game in progress..", 35, 580 );
-        else {
-            if ( winner == dealer )
-                g.strokeText( "The Dealer wins!!!", 35, 580 );
-
-            else
-                g.strokeText( "You win!!!", 35, 580 );
-        }
-
-        for ( int i = 0; i < dealer.getCardCount(); i++ ) {
-            drawCard( g, dealer.getCard(i), 35 + 123 * i, 80 );
-
-            if ( i == 0 ) {
-                if ( !hasStood ) {
-                    drawCard(g, null, 35 + 123 * i, 80);
-                }
-            }
-
-        }
-
-        for ( int i = 0; i < player.getCardCount(); i++ ) {
-            drawCard( g, player.getCard(i), 35 + 123 * i, 360 );
-        }
-    }
-
-    /**
-     * This method determines if either player has won the game.
-     */
-    private boolean hasWon( BlackjackHand hand ) {
-        if ( hand.getBlackjackValue() == 21 ) {
-            winner = hand;
-
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Now if the game has not ended, the user gets a chance to add some cards to his/her hand.
-     * In this phase, the user sees her own cards and sees one of the dealer's two cards. ( In a
-     * casino, the dealer deals himself one card face up and one card face down. ) All the user's
-     * cards are dealt face up. ) The user makes a decision whether to "Hit", which means to add
-     * another card to her hand, or to "Stand", which means to stop taking cards.
-     *
-     * If the user Hits, there is a possibility that the user will go over 21. In that case, the game
-     * is over and the user loses. If not, then the process continues. The user gets to decide again
-     * whether to Hit or Stand.
-     */
-    private void doHit() {
-
-        player.addCard( deck.dealCard() );
-        draw();
-
-        if ( hasWon( player ) ) {
-
-            winnerExists();
-            draw();
-
-        }
-        else if ( player.getBlackjackValue() > 21 ) {
-            winner = dealer;
-            winnerExists();
-            draw();
-
-        }
-
-    }
-
-    /**
-     * If the user Stands, the game will end, but first the dealer gets a chance to draw cards. The dealer
-     * only follows rules, without any choice. The rule is that, as long as the value of the dealer's hand
-     * is less than or equal to 16, the dealer Hits ( that is, takes another card ). The user should see all
-     * the dealers cards at this point. Now, the winner can be determined: if the dealer has gone over 21, the
-     * user wins. Otherwise, if the dealer's total is greater than or equal to the user's total, then the dealer
-     * wins. Otherwise, the user wins.
-     */
-    private void doStand() {
-        hasStood = true;
-
-        while ( dealer.getBlackjackValue() < 16 ) {
-            dealer.addCard( deck.dealCard() );
-            draw();
-        }
-        if ( dealer.getBlackjackValue() > 21 ) {
-            winner = player;
-            winnerExists();
-
-        }
-        else if ( dealer.getBlackjackValue() >= player.getBlackjackValue() ) {
-            winner = dealer;
-            winnerExists();
-        }
-        else {
-            winner = player;
-            winnerExists();
-        }
-        draw();
 
     }
 }
